@@ -1,0 +1,1653 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d12">
+  <meta name="description" content="An interactive 3D vector span explorer for linear algebra.">
+  <title>Span Lab — Interactive Linear Algebra</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d12;
+      --sidebar: #10151c;
+      --panel: #151c25;
+      --line: rgba(197, 214, 230, .105);
+      --text: #eff5f8;
+      --muted: #9ba9b8;
+      --soft: #687686;
+      --mint: #65e7d9;
+      --cream: #f7efc7;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: Inter, "Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--mint);
+      outline-offset: 3px;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .30;
+    }
+
+    ::selection {
+      background: rgba(101, 231, 217, .25);
+    }
+
+    .app {
+      height: 100dvh;
+      min-height: 580px;
+      display: grid;
+      grid-template-columns: 362px minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      position: relative;
+      z-index: 3;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      padding: 27px 27px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      color: #aab7c5;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: .15em;
+    }
+
+    .mark {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      border: 1px solid rgba(101, 231, 217, .4);
+      color: var(--mint);
+      font-size: 14px;
+      font-family: var(--sans);
+    }
+
+    .brand h1 {
+      font-weight: 620;
+      letter-spacing: -.066em;
+      font-size: 42px;
+      margin: 20px 0 8px;
+      line-height: 1.05;
+    }
+
+    .brand h1 span {
+      color: var(--mint);
+      font-style: normal;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      margin: 0;
+      max-width: 285px;
+    }
+
+    .side-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
+      scrollbar-width: thin;
+      scrollbar-color: #34404c transparent;
+      padding: 22px 22px 28px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 13px;
+    }
+
+    .section-tag {
+      color: #c4cdd6;
+      font-size: 10px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-weight: 700;
+    }
+
+    .section-aside {
+      color: var(--soft);
+      font-size: 10px;
+      font-family: var(--mono);
+    }
+
+    .vectors {
+      display: grid;
+      gap: 9px;
+    }
+
+    .vector-card {
+      background: var(--panel);
+      border: 1px solid rgba(188, 207, 223, .085);
+      border-radius: 10px;
+      padding: 13px 13px 12px;
+      transition: border-color .18s;
+    }
+
+    .vector-card:focus-within {
+      border-color: rgba(101, 231, 217, .29);
+    }
+
+    .vector-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .vector-identity {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vector-swatch {
+      height: 9px;
+      width: 9px;
+      background: var(--vector-color);
+      border-radius: 2px;
+      box-shadow: 0 0 10px color-mix(in srgb, var(--vector-color), transparent 65%);
+    }
+
+    .vector-name {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: -.01em;
+    }
+
+    .vector-state {
+      font-family: var(--mono);
+      font-weight: 650;
+      letter-spacing: .04em;
+      font-size: 9px;
+      border-radius: 4px;
+      padding: 4px 6px;
+      color: #9dabb8;
+      background: rgba(196, 209, 221, .055);
+    }
+
+    .vector-state.independent {
+      color: #83d8c9;
+      background: rgba(101, 231, 217, .08);
+    }
+
+    .vector-state.dependent {
+      color: #c2b6cb;
+      background: rgba(207, 174, 251, .075);
+    }
+
+    .remove-vector {
+      margin-left: auto;
+      border: none;
+      color: #82909f;
+      background: none;
+      font-size: 20px;
+      line-height: 1;
+      width: 21px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+    }
+
+    .remove-vector:hover:not(:disabled) {
+      color: #ff9ba8;
+    }
+
+    .coords {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .coord {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #788798;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .coord input {
+      min-width: 0;
+      width: 100%;
+      border: 1px solid #293542;
+      background: #0c1118;
+      color: #e5edf5;
+      border-radius: 6px;
+      outline: none;
+      padding: 9px 9px;
+      font-size: 13px;
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+      transition: border-color .15s;
+    }
+
+    .coord input:focus {
+      border-color: rgba(101, 231, 217, .65);
+    }
+
+    .coord input::-webkit-inner-spin-button,
+    .coord input::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .coord input[type=number] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    .add-vector {
+      width: 100%;
+      border: 1px dashed rgba(165, 185, 202, .28);
+      background: rgba(160, 180, 200, .015);
+      color: #c6d5e1;
+      border-radius: 9px;
+      padding: 13px 12px;
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: 12px;
+      transition: background .18s, border-color .18s;
+    }
+
+    .add-vector:hover:not(:disabled) {
+      background: rgba(101, 231, 217, .06);
+      border-color: rgba(101, 231, 217, .42);
+    }
+
+    .add-vector b {
+      color: var(--mint);
+      padding-right: 7px;
+      font-size: 17px;
+      vertical-align: -1px;
+    }
+
+    .presets {
+      margin-top: 25px;
+    }
+
+    .preset-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .preset {
+      font-family: var(--mono);
+      border: 1px solid rgba(182, 205, 222, .18);
+      background: rgba(233, 246, 255, .025);
+      color: #aab8c6;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      transition: .15s;
+    }
+
+    .preset:hover {
+      border-color: rgba(101, 231, 217, .45);
+      color: #e6fcf6;
+    }
+
+    .preset.active {
+      background: rgba(101, 231, 217, .105);
+      border-color: rgba(101, 231, 217, .34);
+      color: #b0fcef;
+    }
+
+    .combo-section {
+      margin-top: 24px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .switch-wrap {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .switch-wrap input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+
+    .switch-ui {
+      display: block;
+      width: 32px;
+      height: 18px;
+      background: #35404b;
+      border-radius: 20px;
+      position: relative;
+      transition: .2s;
+    }
+
+    .switch-ui:after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      background: #d1d9e0;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      transition: .2s;
+    }
+
+    .switch-wrap input:checked+.switch-ui {
+      background: #2b796f;
+    }
+
+    .switch-wrap input:checked+.switch-ui:after {
+      left: 17px;
+      background: #bdfff2;
+    }
+
+    .switch-wrap input:focus-visible+.switch-ui {
+      outline: 2px solid var(--mint);
+      outline-offset: 2px;
+    }
+
+    .section-copy {
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin: 0 0 14px;
+    }
+
+    .coefficient-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .coefficient-item {
+      display: grid;
+      grid-template-columns: 25px minmax(0, 1fr) 42px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .coef-name {
+      font-family: var(--mono);
+      color: var(--coef-color);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .coef-value {
+      text-align: right;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #dbe7ef;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .coefficient-item input {
+      width: 100%;
+      height: 5px;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      border-radius: 5px;
+      background: linear-gradient(90deg, #394650 49.7%, #697986 50%, #394650 50.3%);
+      cursor: ew-resize;
+    }
+
+    .coefficient-item input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #0f161e;
+      border-radius: 50%;
+      background: var(--coef-color);
+      box-shadow: 0 0 0 1px var(--coef-color);
+    }
+
+    .coefficient-item input::-moz-range-thumb {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--coef-color);
+      border: 1px solid #0f161e;
+    }
+
+    .result-row {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid rgba(247, 239, 199, .16);
+      background: rgba(247, 239, 199, .045);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .result-dot {
+      height: 7px;
+      width: 7px;
+      background: var(--cream);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--cream);
+    }
+
+    .result-name {
+      font-size: 11px;
+      color: #bbc7cf;
+    }
+
+    .result-value {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #f8f0cf;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .combo-hidden {
+      display: none;
+    }
+
+    .aside-note {
+      margin-top: 22px;
+      color: #677787;
+      font-size: 10px;
+      line-height: 1.65;
+    }
+
+    .stage {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse 62% 66% at 52% 52%, rgba(27, 40, 49, .42), transparent 77%), #090d12;
+    }
+
+    .stage:before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(205, 226, 236, .11) .55px, transparent .55px);
+      background-size: 29px 29px;
+      opacity: .23;
+      mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 85%, transparent 100%);
+    }
+
+    .viewport {
+      position: absolute;
+      inset: 0;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .viewport.dragging {
+      cursor: grabbing;
+    }
+
+    .viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .stage-top {
+      position: absolute;
+      left: 32px;
+      top: 28px;
+      right: 32px;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      pointer-events: none;
+      gap: 20px;
+    }
+
+    .stage-meta {
+      color: #8794a3;
+      font-family: var(--mono);
+      letter-spacing: .11em;
+      font-weight: 650;
+      font-size: 10px;
+      line-height: 1.7;
+    }
+
+    .stage-meta strong {
+      color: #e5edf3;
+      font-weight: 650;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .tool {
+      border: 1px solid rgba(199, 218, 231, .14);
+      background: rgba(13, 20, 27, .78);
+      color: #c0cdd8;
+      border-radius: 7px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 550;
+      padding: 10px 11px;
+      transition: .16s;
+      white-space: nowrap;
+    }
+
+    .tool:hover {
+      color: #f4fff9;
+      background: #1a2930;
+      border-color: rgba(101, 231, 217, .4);
+    }
+
+    .tool svg {
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+
+    .tool[aria-pressed=true] {
+      color: var(--mint);
+    }
+
+    .dimension-card {
+      position: absolute;
+      top: 91px;
+      right: 32px;
+      z-index: 1;
+      pointer-events: none;
+      width: 178px;
+      border: 1px solid rgba(101, 231, 217, .20);
+      border-radius: 11px;
+      padding: 15px 17px 15px;
+      background: rgba(13, 22, 29, .68);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, .12);
+    }
+
+    .dim-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: .13em;
+      color: #9eb5bd;
+      font-family: var(--mono);
+    }
+
+    .live-dot {
+      height: 6px;
+      width: 6px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 10px var(--mint);
+    }
+
+    .dim-main {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      margin-top: 6px;
+    }
+
+    .dim-number {
+      color: #efffff;
+      font-size: 47px;
+      font-weight: 560;
+      line-height: 1.12;
+      letter-spacing: -.07em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dim-denom {
+      color: #78929b;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .dim-type {
+      font-size: 11px;
+      margin-top: 3px;
+      color: var(--mint);
+      font-weight: 600;
+      letter-spacing: -.02em;
+    }
+
+    .tip {
+      position: absolute;
+      top: 90px;
+      left: 32px;
+      pointer-events: none;
+      font-family: var(--mono);
+      color: #7a8895;
+      font-size: 10px;
+      letter-spacing: .015em;
+      line-height: 1.9;
+    }
+
+    .tip span {
+      color: #d2dce4;
+    }
+
+    .readout {
+      position: absolute;
+      z-index: 1;
+      bottom: 31px;
+      left: 32px;
+      width: min(490px, calc(100% - 72px));
+      pointer-events: none;
+      padding: 20px 23px 18px;
+      border: 1px solid rgba(197, 214, 230, .13);
+      border-radius: 11px;
+      background: rgba(12, 18, 25, .8);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, .13);
+    }
+
+    .readout-label {
+      font-size: 9px;
+      letter-spacing: .14em;
+      color: #85a7ab;
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+
+    .readout h2 {
+      font-size: 19px;
+      font-weight: 590;
+      letter-spacing: -.035em;
+      line-height: 1.2;
+      margin: 9px 0 7px;
+      color: #ecf5f5;
+    }
+
+    .readout p {
+      margin: 0;
+      color: #9faebb;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .equation {
+      border-top: 1px solid rgba(197, 214, 230, .1);
+      padding-top: 12px;
+      margin-top: 13px;
+      font-size: 11px;
+      color: #d2e7e4;
+      font-family: var(--mono);
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      scrollbar-width: thin;
+    }
+
+    .legend {
+      position: absolute;
+      right: 32px;
+      bottom: 40px;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+      pointer-events: none;
+      font-size: 10px;
+      font-family: var(--mono);
+      color: #8999a8;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .legend-symbol {
+      display: block;
+      width: 17px;
+      height: 2px;
+      background: #a8b8ff;
+      border-radius: 4px;
+    }
+
+    .legend-symbol.span {
+      background: var(--mint);
+      box-shadow: 0 0 9px rgba(101, 231, 217, .55);
+    }
+
+    .legend-symbol.result {
+      background: var(--cream);
+    }
+
+    .toast {
+      position: absolute;
+      top: 142px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-6px);
+      background: #233c3b;
+      border: 1px solid #407a72;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #d4fff4;
+      padding: 10px 15px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s;
+      z-index: 4;
+    }
+
+    .toast.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .noscript {
+      padding: 25px;
+      color: #ffb7b7;
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 325px minmax(0, 1fr);
+      }
+
+      .brand {
+        padding: 24px 23px;
+      }
+
+      .side-scroll {
+        padding: 20px 18px;
+      }
+
+      .toolbar {
+        max-width: 330px;
+      }
+
+      .dimension-card {
+        top: 121px;
+      }
+
+      .tip {
+        top: 92px;
+      }
+
+      .readout {
+        width: min(430px, calc(100% - 60px));
+        left: 22px;
+      }
+
+      .stage-top {
+        left: 22px;
+        right: 22px;
+      }
+
+      .legend {
+        right: 22px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        height: auto;
+        min-height: 100dvh;
+        grid-template-columns: 1fr;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar {
+        order: 2;
+        border-right: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .brand {
+        padding: 22px 22px 19px;
+      }
+
+      .brand h1 {
+        font-size: 34px;
+        margin: 13px 0 7px;
+      }
+
+      .side-scroll {
+        overflow: visible;
+        padding: 20px 20px 35px;
+      }
+
+      .stage {
+        order: 1;
+        height: 60svh;
+        min-height: 440px;
+        flex: none;
+      }
+
+      .stage-top {
+        left: 12px;
+        right: 12px;
+        top: 13px;
+      }
+
+      .stage-meta {
+        display: none;
+      }
+
+      .toolbar {
+        max-width: none;
+        width: 100%;
+        gap: 4px;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+      }
+
+      .tool {
+        padding: 8px 7px;
+        font-size: 9px;
+      }
+
+      .dimension-card {
+        right: 12px;
+        top: 72px;
+        width: 121px;
+        padding: 10px 11px;
+      }
+
+      .dim-number {
+        font-size: 33px;
+      }
+
+      .dim-top {
+        font-size: 7px;
+      }
+
+      .dim-type {
+        font-size: 9px;
+      }
+
+      .tip {
+        left: 15px;
+        top: 80px;
+        font-size: 9px;
+      }
+
+      .readout {
+        left: 12px;
+        bottom: 12px;
+        width: min(470px, calc(100% - 24px));
+        padding: 13px 15px;
+      }
+
+      .readout h2 {
+        font-size: 16px;
+        margin: 6px 0 3px;
+      }
+
+      .readout p {
+        font-size: 10px;
+        line-height: 1.55;
+      }
+
+      .equation {
+        font-size: 9px;
+        margin-top: 8px;
+        padding-top: 8px;
+      }
+
+      .legend {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Vector controls">
+      <div class="brand">
+        <h1>Interactive span visualization</h1>
+        <p>The "span" is everywhere the combination of our vectors can reach</p>
+      </div>
+      <div class="side-scroll">
+        <div class="section-head">
+          <span class="section-tag">01 &nbsp;/&nbsp; Your vectors</span>
+          <span class="section-aside" id="vector-count">2 / 8</span>
+        </div>
+        <div class="vectors" id="vector-list" aria-label="Editable 3D vectors"></div>
+        <button class="add-vector" id="add-vector" type="button"><b>+</b> Add another vector</button>
+        <section class="presets" aria-label="Example vector sets">
+          <div class="section-head"><span class="section-tag">Explore an example</span></div>
+          <div class="preset-list" id="preset-list">
+            <button class="preset" data-preset="line" type="button">1D line</button>
+            <button class="preset" data-preset="plane" type="button">2D plane</button>
+            <button class="preset" data-preset="space" type="button">3D space</button>
+            <button class="preset" data-preset="redundant" type="button">Redundant</button>
+            <button class="preset" data-preset="zero" type="button">Zero vector</button>
+          </div>
+        </section>
+        <section class="combo-section" aria-label="Example linear combination">
+          <div class="section-head">
+            <span class="section-tag">02 &nbsp;/&nbsp; Example combination</span>
+            <label class="switch-wrap" title="Show an example linear combination">
+              <input id="show-combo" type="checkbox" checked aria-label="Show linear combination">
+              <span class="switch-ui"></span>
+            </label>
+          </div>
+          <div id="combo-content">
+            <p class="section-copy">Adjust the coefficients to build a reachable vector. Every real coefficient is
+              allowed; sliders show just one example.</p>
+            <div class="coefficient-list" id="coefficient-list"></div>
+            <div class="result-row">
+              <span class="result-dot"></span><span class="result-name">Resulting vector</span>
+              <strong class="result-value" id="result-value">(1, 2, 2)</strong>
+            </div>
+          </div>
+        </section>
+        <p class="aside-note">Each vector lives in ℝ³. You can add more vectors, but the span can never have more than
+          three independent directions. The highlighted region is clipped to the viewing cube; the actual span extends
+          infinitely.</p>
+      </div>
+    </aside>
+    <main class="stage" id="stage" aria-label="Interactive three-dimensional graph">
+      <div class="viewport" id="viewport"><canvas id="scene" role="img"
+          aria-label="3D projection showing coordinate axes, input vectors, and their highlighted span. Drag to orbit and scroll to zoom."></canvas>
+      </div>
+      <div class="stage-top">
+        <div class="toolbar" aria-label="View controls">
+          <button class="tool" id="toggle-grid" aria-pressed="true" type="button">▦ &nbsp;Grid</button>
+          <button class="tool" id="fit-view" type="button">◎ &nbsp;Fit</button>
+          <button class="tool" id="reset-view" type="button">↺ &nbsp;Reset view</button>
+          <button class="tool" id="share-link" type="button">↗ &nbsp;Share</button>
+          <button class="tool" id="fullscreen" type="button" title="Fullscreen presentation">⛶</button>
+        </div>
+      </div>
+      <div class="tip"><span>DRAG</span> to orbit<br><span>SCROLL</span> to zoom</div>
+      <div class="dimension-card" aria-live="polite">
+        <div class="dim-top"><span class="live-dot"></span> Span dimension</div>
+        <div class="dim-main"><span class="dim-number" id="rank-number">2</span><span class="dim-denom">/ 3</span></div>
+        <div class="dim-type" id="rank-type">A PLANE IN ℝ³</div>
+      </div>
+      <div class="readout" aria-live="polite">
+        <div class="readout-label">WHAT CAN THESE VECTORS REACH?</div>
+        <h2 id="span-title">A plane through the origin</h2>
+        <p id="span-description">Two independent directions make a plane. Any point on this plane is a linear
+          combination of your vectors.</p>
+        <div class="equation" id="span-equation">span(v₁, v₂) = {c₁v₁ + c₂v₂ : cᵢ ∈ ℝ}</div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <div class="legend-item"><i class="legend-symbol"></i> Input vectors</div>
+        <div class="legend-item"><i class="legend-symbol span"></i> Entire span</div>
+        <div class="legend-item" id="result-legend"><i class="legend-symbol result"></i> One combination</div>
+      </div>
+      <div class="toast" id="toast" role="status"></div>
+    </main>
+  </div>
+  <noscript>
+    <p class="noscript">This interactive webpage needs JavaScript enabled.</p>
+  </noscript>
+  <script>
+    (() => {
+      'use strict';
+
+      // --------------------------------------------------------------
+      // Span Lab: no dependencies, bundler, external assets, or server.
+      // The 3D world is projected onto a high-resolution 2D canvas.
+      // --------------------------------------------------------------
+
+      const MAX_VECTORS = 8;
+      const BOX = 6;
+      const SUB = ['₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈'];
+      const COLORS = ['#95b8ff', '#ff9dad', '#ffc48b', '#b0f2bd', '#d5adff', '#ffe093', '#80d7f0', '#f6b7de'];
+      const EXAMPLES = {
+        line: [[2, 1, -1]],
+        plane: [[2, 1, 0], [-1, 1, 2]],
+        space: [[2, 0, 0], [0, 2, 0], [0, 0, 2]],
+        redundant: [[2, 1, 0], [0, 1, 2], [2, 2, 2], [4, 3, 2]],
+        zero: [[0, 0, 0]]
+      };
+      const SUGGESTIONS = [[0, 0, 1], [1, 1, 1], [1, -1, 0], [0, 1, -1], [2, 1, 1], [1, 2, -1]];
+
+      const el = (id) => document.getElementById(id);
+      const dom = {
+        canvas: el('scene'), viewport: el('viewport'),
+        vectorList: el('vector-list'), vectorCount: el('vector-count'),
+        addVector: el('add-vector'), presetList: el('preset-list'),
+        showCombo: el('show-combo'), comboContent: el('combo-content'),
+        coefficientList: el('coefficient-list'), resultValue: el('result-value'),
+        rankNumber: el('rank-number'), rankType: el('rank-type'),
+        spanTitle: el('span-title'), spanDescription: el('span-description'),
+        spanEquation: el('span-equation'), toggleGrid: el('toggle-grid'),
+        fitView: el('fit-view'), resetView: el('reset-view'),
+        shareLink: el('share-link'), fullscreen: el('fullscreen'),
+        resultLegend: el('result-legend'), toast: el('toast')
+      };
+      const ctx = dom.canvas.getContext('2d', { alpha: true });
+      if (!ctx) { dom.viewport.textContent = 'Canvas 2D is unavailable in this browser.'; return; }
+
+      let vectors = EXAMPLES.plane.map((xyz, i) => ({ xyz: [...xyz], c: i === 0 ? 1 : 1 }));
+      let currentPreset = 'plane';
+      let showGrid = true;
+      let size = { w: 1, h: 1, pixelRatio: 1 };
+      let camera = { yaw: .76, pitch: .43, distance: 24 };
+      let analysis = null;
+      let resultant = [0, 0, 0];
+      let redrawPending = false;
+      let toastTimer;
+      const pointers = new Map();
+      let lastPinch = null;
+
+      // ---- Vector arithmetic and numerically stable span dimension ----
+      const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+      const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+      const mul = (a, t) => [a[0] * t, a[1] * t, a[2] * t];
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+      const norm = a => Math.hypot(a[0], a[1], a[2]);
+      const unit = a => { const n = norm(a); return n < 1e-12 ? [0, 0, 0] : mul(a, 1 / n); };
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const finiteNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+
+      function analyzeSpan(input) {
+        // Modified Gram-Schmidt, with a second orthogonalization pass.
+        // The tolerance is relative to each nonzero vector's magnitude,
+        // so simply scaling a vector does not change the detected rank.
+        const basis = [];
+        const statuses = [];
+        for (const raw of input) {
+          const v = raw.map(finiteNumber);
+          const length = norm(v);
+          if (length < 1e-12) { statuses.push('zero'); continue; }
+          let r = [...v];
+          for (let pass = 0; pass < 2; pass++) {
+            for (const q of basis) r = sub(r, mul(q, dot(r, q)));
+          }
+          const remaining = norm(r);
+          if (remaining > 1e-8 * length && basis.length < 3) {
+            basis.push(mul(r, 1 / remaining));
+            statuses.push('independent');
+          } else {
+            statuses.push('dependent');
+          }
+        }
+        return { rank: basis.length, basis, statuses };
+      }
+      function linearCombination(rows) {
+        return rows.reduce((sum, row) => add(sum, mul(row.xyz, row.c)), [0, 0, 0]);
+      }
+      const nice = x => { const t = Math.abs(x) < .005 ? 0 : x; return String(Number(t.toFixed(2))); };
+      const tuple = v => `(${v.map(nice).join(', ')})`;
+      const vectorName = i => `v${SUB[i]}`;
+
+      // ---- User interface ----
+      function drawVectorInputs() {
+        dom.vectorCount.textContent = `${vectors.length} / ${MAX_VECTORS}`;
+        dom.addVector.disabled = vectors.length >= MAX_VECTORS;
+        dom.vectorList.innerHTML = vectors.map((v, i) => `
+      <div class="vector-card" data-index="${i}" style="--vector-color:${COLORS[i]}">
+        <div class="vector-top">
+          <div class="vector-identity"><span class="vector-swatch"></span><span class="vector-name">${vectorName(i)}</span></div>
+          <span class="vector-state" data-state-for="${i}"></span>
+          <button class="remove-vector" type="button" data-remove="${i}" aria-label="Remove vector ${i + 1}" ${vectors.length === 1 ? 'disabled' : ''}>×</button>
+        </div>
+        <div class="coords">${['x', 'y', 'z'].map((axis, k) => `
+          <label class="coord">${axis}<input type="number" step="any" data-axis="${k}" value="${v.xyz[k]}" aria-label="Vector ${i + 1} ${axis} component"></label>
+        `).join('')}</div>
+      </div>
+    `).join('');
+        drawCoefficientInputs();
+        refreshStates();
+      }
+      function drawCoefficientInputs() {
+        dom.coefficientList.innerHTML = vectors.map((v, i) => `
+      <label class="coefficient-item" style="--coef-color:${COLORS[i]}">
+        <span class="coef-name">c${SUB[i]}</span>
+        <input type="range" min="-2" max="2" step="0.1" value="${v.c}"
+               data-coef="${i}" aria-label="Coefficient for vector ${i + 1}">
+        <output class="coef-value" data-output="${i}">${v.c.toFixed(1)}</output>
+      </label>
+    `).join('');
+      }
+      function refreshStates() {
+        dom.vectorList.querySelectorAll('[data-state-for]').forEach(node => {
+          const status = analysis.statuses[Number(node.dataset.stateFor)];
+          node.className = `vector-state ${status}`;
+          node.textContent = status === 'independent' ? 'NEW DIRECTION' : status === 'dependent' ? 'IN SPAN' : 'ZERO VECTOR';
+          node.title = status === 'independent' ? 'This vector adds an independent direction.' : status === 'dependent' ? 'This vector is a combination of earlier vectors.' : 'The zero vector cannot add a new direction.';
+        });
+      }
+      function refreshReadout() {
+        const rank = analysis.rank;
+        const extra = vectors.length - rank;
+        const titles = ['Only the origin', 'A line through the origin', 'A plane through the origin', 'All of 3D space'];
+        const types = ['A SINGLE POINT', 'A LINE IN ℝ³', 'A PLANE IN ℝ³', 'ALL OF ℝ³'];
+        const descriptions = [
+          'Zero vectors give only the zero vector. No other point can be reached.',
+          'One independent direction creates an infinite line. Positive and negative multiples reach both directions.',
+          'Two independent directions create an infinite plane. Their linear combinations reach every point on it.',
+          'Three independent directions reach any point in ℝ³. Additional vectors cannot make the span larger.'
+        ];
+        dom.rankNumber.textContent = rank;
+        dom.rankType.textContent = types[rank];
+        dom.spanTitle.textContent = titles[rank];
+        dom.spanDescription.textContent = descriptions[rank] + (extra > 0 && rank > 0 ? ` ${extra} input vector${extra === 1 ? ' does' : 's do'} not add a new direction.` : '');
+        const left = vectors.map((_, i) => vectorName(i)).join(', ');
+        const terms = vectors.length <= 4
+          ? vectors.map((_, i) => `c${SUB[i]}${vectorName(i)}`).join(' + ')
+          : `c₁v₁ + c₂v₂ + … + c${SUB[vectors.length - 1]}${vectorName(vectors.length - 1)}`;
+        dom.spanEquation.textContent = `span(${left}) = {${terms} : cᵢ ∈ ℝ}`;
+        dom.resultValue.textContent = tuple(resultant);
+        dom.resultLegend.style.display = dom.showCombo.checked ? '' : 'none';
+        dom.comboContent.classList.toggle('combo-hidden', !dom.showCombo.checked);
+      }
+      function selectPreset(name) {
+        currentPreset = name;
+        dom.presetList.querySelectorAll('.preset').forEach(button => button.classList.toggle('active', button.dataset.preset === name));
+      }
+      function recalculate() {
+        analysis = analyzeSpan(vectors.map(v => v.xyz));
+        resultant = linearCombination(vectors);
+        refreshStates();
+        refreshReadout();
+        requestDraw();
+      }
+      function setVectors(arr, preset = null) {
+        if (!Array.isArray(arr) || arr.length < 1 || arr.length > MAX_VECTORS) return false;
+        if (!arr.every(v => Array.isArray(v) && v.length === 3 && v.every(x => Number.isFinite(Number(x)) && Math.abs(Number(x)) <= 1000000))) return false;
+        vectors = arr.map((xyz, i) => ({ xyz: xyz.map(Number), c: i < 2 ? 1 : 0 }));
+        selectPreset(preset);
+        analysis = analyzeSpan(vectors.map(v => v.xyz));
+        drawVectorInputs();
+        recalculate();
+        return true;
+      }
+      function toast(message) {
+        clearTimeout(toastTimer);
+        dom.toast.textContent = message;
+        dom.toast.classList.add('visible');
+        toastTimer = setTimeout(() => dom.toast.classList.remove('visible'), 2200);
+      }
+
+      dom.vectorList.addEventListener('input', event => {
+        const target = event.target;
+        if (!target.matches('input[data-axis]')) return;
+        const row = target.closest('[data-index]');
+        if (!row) return;
+        const i = Number(row.dataset.index), axis = Number(target.dataset.axis);
+        vectors[i].xyz[axis] = clamp(finiteNumber(target.value), -1000000, 1000000);
+        selectPreset(null);
+        recalculate();
+      });
+      dom.vectorList.addEventListener('click', event => {
+        const button = event.target.closest('button[data-remove]');
+        if (!button || vectors.length <= 1) return;
+        vectors.splice(Number(button.dataset.remove), 1);
+        selectPreset(null);
+        analysis = analyzeSpan(vectors.map(v => v.xyz));
+        drawVectorInputs(); recalculate();
+      });
+      dom.addVector.addEventListener('click', () => {
+        if (vectors.length >= MAX_VECTORS) return;
+        const next = SUGGESTIONS[(vectors.length - 2 + SUGGESTIONS.length) % SUGGESTIONS.length];
+        vectors.push({ xyz: [...next], c: 0 });
+        selectPreset(null);
+        analysis = analyzeSpan(vectors.map(v => v.xyz));
+        drawVectorInputs(); recalculate();
+        const inputs = dom.vectorList.lastElementChild?.querySelectorAll('input');
+        if (inputs && inputs.length) inputs[0].focus();
+      });
+      dom.presetList.addEventListener('click', e => {
+        const button = e.target.closest('button[data-preset]');
+        if (button) { setVectors(EXAMPLES[button.dataset.preset], button.dataset.preset); fitView(); }
+      });
+      dom.coefficientList.addEventListener('input', e => {
+        const slider = e.target.closest('input[data-coef]');
+        if (!slider) return;
+        const index = Number(slider.dataset.coef);
+        vectors[index].c = Number(slider.value);
+        dom.coefficientList.querySelector(`[data-output="${index}"]`).textContent = vectors[index].c.toFixed(1);
+        recalculate();
+      });
+      dom.showCombo.addEventListener('change', recalculate);
+      dom.toggleGrid.addEventListener('click', () => {
+        showGrid = !showGrid;
+        dom.toggleGrid.setAttribute('aria-pressed', String(showGrid));
+        requestDraw();
+      });
+      dom.resetView.addEventListener('click', () => { camera = { yaw: .76, pitch: .43, distance: 24 }; requestDraw(); });
+      dom.fitView.addEventListener('click', fitView);
+      dom.fullscreen.addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+          else await document.exitFullscreen();
+        } catch (err) { toast('Fullscreen is unavailable in this browser.'); }
+      });
+      dom.shareLink.addEventListener('click', async () => {
+        const url = new URL(window.location.href);
+        url.hash = 'v=' + encodeURIComponent(JSON.stringify(vectors.map(v => v.xyz)));
+        history.replaceState(null, '', url.toString());
+        try {
+          await navigator.clipboard.writeText(url.toString());
+          toast('Link copied — share this vector setup!');
+        } catch (err) {
+          toast('Setup added to the URL — copy it from the address bar.');
+        }
+      });
+      window.addEventListener('hashchange', loadHash);
+
+      function loadHash() {
+        const hash = window.location.hash.replace(/^#/, '');
+        if (!hash.startsWith('v=')) return;
+        try {
+          const saved = JSON.parse(decodeURIComponent(hash.slice(2)));
+          if (setVectors(saved)) fitView();
+        } catch (err) { /* Invalid shared link: keep current setup. */ }
+      }
+
+      // ---- Camera and 3D to 2D projection ----
+      function cameraFrame() {
+        const { yaw, pitch, distance } = camera;
+        const position = [Math.cos(pitch) * Math.sin(yaw) * distance, Math.sin(pitch) * distance, Math.cos(pitch) * Math.cos(yaw) * distance];
+        const forward = unit(mul(position, -1));
+        const right = unit(cross(forward, [0, 1, 0]));
+        const up = unit(cross(right, forward));
+        return { position, forward, right, up };
+      }
+      let frame;
+      function depth(point) { return dot(sub(point, frame.position), frame.forward); }
+      function project(point) {
+        const relative = sub(point, frame.position);
+        const z = Math.max(.5, dot(relative, frame.forward));
+        const focal = Math.min(size.w, size.h) * 1.23;
+        return {
+          x: size.w * .51 + focal * dot(relative, frame.right) / z,
+          y: size.h * .50 - focal * dot(relative, frame.up) / z,
+          z
+        };
+      }
+      function line(a, b, color, thickness = 1, opacity = 1, glow = 0, dashed = false) {
+        const x = project(a), y = project(b);
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = thickness;
+        ctx.lineCap = 'round';
+        if (dashed) ctx.setLineDash([5, 6]);
+        if (glow) { ctx.shadowBlur = glow; ctx.shadowColor = color; }
+        ctx.beginPath(); ctx.moveTo(x.x, x.y); ctx.lineTo(y.x, y.y); ctx.stroke();
+        ctx.restore();
+      }
+      function circle(point, radius, color, opacity = 1, glow = 0) {
+        const p = project(point);
+        ctx.save(); ctx.globalAlpha = opacity;
+        if (glow) { ctx.shadowBlur = glow; ctx.shadowColor = color; }
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
+      function arrow(a, b, color, thickness = 2.7, opacity = 1) {
+        const p = project(a), q = project(b);
+        const dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy);
+        if (L < 2.5) { circle(b, 3.5, color, opacity, 8); return; }
+        const nx = dx / L, ny = dy / L;
+        const head = clamp(L * .2, 8, 12.5), half = clamp(head * .39, 3.2, 5.2);
+        ctx.save(); ctx.globalAlpha = opacity; ctx.lineCap = 'round'; ctx.strokeStyle = color;
+        ctx.lineWidth = thickness; ctx.shadowBlur = 12; ctx.shadowColor = color;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x - nx * head * .75, q.y - ny * head * .75); ctx.stroke();
+        ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(q.x, q.y);
+        ctx.lineTo(q.x - nx * head - ny * half, q.y - ny * head + nx * half);
+        ctx.lineTo(q.x - nx * head + ny * half, q.y - ny * head - nx * half);
+        ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+      function polygon(points, fill, stroke = null, opacity = 1) {
+        if (points.length < 3) return;
+        ctx.save(); ctx.globalAlpha = opacity; ctx.beginPath();
+        points.forEach((p, i) => { const q = project(p); if (!i) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y); });
+        ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+        ctx.restore();
+      }
+      function label(point, name, color, offsetX = 8, offsetY = -18) {
+        const p = project(point);
+        if (p.x < 0 || p.x > size.w || p.y < 0 || p.y > size.h) return;
+        ctx.save(); ctx.font = '650 12px ' + getComputedStyle(document.body).fontFamily;
+        const width = ctx.measureText(name).width + 15;
+        let x = p.x + offsetX, y = p.y + offsetY;
+        x = clamp(x, 4, size.w - width - 4);
+        y = clamp(y, 5, size.h - 29);
+        ctx.fillStyle = 'rgba(9,14,20,.85)';
+        ctx.strokeStyle = 'rgba(205,225,235,.09)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.roundRect(x, y, width, 24, 5); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = color; ctx.fillText(name, x + 7, y + 16.1);
+        ctx.restore();
+      }
+      function requestDraw() {
+        if (redrawPending) return;
+        redrawPending = true;
+        requestAnimationFrame(() => { redrawPending = false; draw(); });
+      }
+      function resize() {
+        const rect = dom.viewport.getBoundingClientRect();
+        size.w = Math.max(1, rect.width); size.h = Math.max(1, rect.height);
+        size.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        dom.canvas.width = Math.round(size.w * size.pixelRatio);
+        dom.canvas.height = Math.round(size.h * size.pixelRatio);
+        requestDraw();
+      }
+      new ResizeObserver(resize).observe(dom.viewport);
+      window.addEventListener('resize', resize);
+
+      function fitView() {
+        const reach = Math.max(BOX, ...vectors.map(v => norm(v.xyz)), dom.showCombo.checked ? norm(resultant) : 0);
+        camera.distance = clamp(reach * 3.75, 23.5, 150);
+        requestDraw();
+      }
+
+      // ---- Coordinate guide / reference cube ----
+      function drawGuides() {
+        if (!showGrid) return;
+        // Three subtle walls give visual depth without hiding the axes.
+        for (let t = -BOX; t <= BOX + .001; t += 2) {
+          for (const height of [-BOX]) {
+            line([-BOX, height, t], [BOX, height, t], '#a0b2c2', .8, .13);
+            line([t, height, -BOX], [t, height, BOX], '#a0b2c2', .8, .13);
+          }
+          line([t, -BOX, -BOX], [t, BOX, -BOX], '#a0b2c2', .8, .12);
+          line([-BOX, t, -BOX], [BOX, t, -BOX], '#a0b2c2', .8, .12);
+          line([-BOX, t, -BOX], [-BOX, t, BOX], '#a0b2c2', .8, .10);
+          line([-BOX, -BOX, t], [-BOX, BOX, t], '#a0b2c2', .8, .10);
+          // Slightly brighter grid through the origin, y=0.
+          line([-BOX, 0, t], [BOX, 0, t], '#b6c2cd', .8, .12);
+          line([t, 0, -BOX], [t, 0, BOX], '#b6c2cd', .8, .12);
+        }
+        // A restrained cube outline makes the clipping boundary explicit.
+        for (const a of [-BOX, BOX]) for (const b of [-BOX, BOX]) {
+          line([a, b, -BOX], [a, b, BOX], '#a4b2c0', 1, .19);
+          line([a, -BOX, b], [a, BOX, b], '#a4b2c0', 1, .19);
+          line([-BOX, a, b], [BOX, a, b], '#a4b2c0', 1, .19);
+        }
+      }
+      function drawAxes() {
+        const names = ['x', 'y', 'z'];
+        const dirs = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+        dirs.forEach((dir, i) => {
+          const low = mul(dir, -BOX * 1.12), high = mul(dir, BOX * 1.12);
+          line(low, high, '#a5b7c5', 1.15, .44);
+          const end = project(high);
+          const before = project(mul(dir, BOX * .99));
+          const dx = end.x - before.x, dy = end.y - before.y, n = Math.hypot(dx, dy) || 1;
+          ctx.save(); ctx.translate(end.x, end.y); ctx.rotate(Math.atan2(dy, dx));
+          ctx.fillStyle = 'rgba(182,201,213,.65)'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8, -3); ctx.lineTo(-8, 3); ctx.fill(); ctx.restore();
+          ctx.save(); ctx.font = 'italic 15px Georgia, serif'; ctx.fillStyle = '#a6bbcd'; ctx.fillText(names[i], end.x + 9, end.y - 8); ctx.restore();
+        });
+      }
+
+      // Compute plane ∩ reference cube. A plane has no finite edge,
+      // so only its intersection with the visible cube is drawn.
+      const cubeVertices = [];
+      for (const x of [-BOX, BOX]) for (const y of [-BOX, BOX]) for (const z of [-BOX, BOX]) cubeVertices.push([x, y, z]);
+      const cubeEdges = [];
+      for (let i = 0; i < 8; i++)for (let j = i + 1; j < 8; j++) {
+        let different = 0;
+        for (let k = 0; k < 3; k++)if (cubeVertices[i][k] !== cubeVertices[j][k]) different++;
+        if (different === 1) cubeEdges.push([cubeVertices[i], cubeVertices[j]]);
+      }
+      function planePolygon(u, v) {
+        const n = unit(cross(u, v)), hits = [];
+        const insert = p => {
+          if (!hits.some(q => norm(sub(p, q)) < 1e-6)) hits.push(p);
+        };
+        for (const [a, b] of cubeEdges) {
+          const da = dot(n, a), db = dot(n, b);
+          if (Math.abs(da) < 1e-9) insert(a);
+          if (Math.abs(db) < 1e-9) insert(b);
+          if (da * db < 0) { const t = da / (da - db); insert(add(a, mul(sub(b, a), t))); }
+        }
+        hits.sort((a, b) => Math.atan2(dot(a, v), dot(a, u)) - Math.atan2(dot(b, v), dot(b, u)));
+        return hits;
+      }
+      function polygonPath(points) {
+        ctx.beginPath();
+        points.forEach((p, i) => { const q = project(p); if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y); });
+        ctx.closePath();
+      }
+      function drawRankZero() {
+        circle([0, 0, 0], 19, '#63e7d8', .045, 24);
+        circle([0, 0, 0], 8, '#65e7d9', .3, 19);
+        circle([0, 0, 0], 3, '#a3fff3', .95, 13);
+      }
+      function drawRankOne() {
+        const v = analysis.basis[0];
+        const extent = Math.min(...v.map(x => Math.abs(x) > 1e-8 ? BOX / Math.abs(x) : Infinity));
+        const a = mul(v, -extent), b = mul(v, extent);
+        line(a, b, '#65e7d9', 14, .08, 25);
+        line(a, b, '#65e7d9', 3, .84, 15);
+        circle(a, 3, '#7affea', .7, 12); circle(b, 3, '#7affea', .7, 12);
+      }
+      function drawRankTwo() {
+        const [u, v] = analysis.basis;
+        const poly = planePolygon(u, v);
+        if (poly.length < 3) return;
+        ctx.save();
+        polygonPath(poly); ctx.clip();
+        const o = project([0, 0, 0]);
+        const radius = Math.min(size.w, size.h) * .75;
+        const fill = ctx.createRadialGradient(o.x, o.y, 15, o.x, o.y, radius);
+        fill.addColorStop(0, 'rgba(101,231,217,.27)');
+        fill.addColorStop(.55, 'rgba(101,231,217,.15)');
+        fill.addColorStop(1, 'rgba(101,231,217,.085)');
+        ctx.fillStyle = fill; ctx.fillRect(0, 0, size.w, size.h);
+        for (let t = -10; t <= 10.001; t += 1) {
+          const strong = Math.abs(t) < .01;
+          line(add(mul(u, t), mul(v, -12)), add(mul(u, t), mul(v, 12)), '#7cecdf', strong ? 1.35 : .85, strong ? .43 : .23);
+          line(add(mul(v, t), mul(u, -12)), add(mul(v, t), mul(u, 12)), '#7cecdf', strong ? 1.35 : .85, strong ? .43 : .23);
+        }
+        ctx.restore();
+        ctx.save(); polygonPath(poly); ctx.strokeStyle = 'rgba(117,245,226,.46)'; ctx.lineWidth = 1.45; ctx.setLineDash([7, 6]); ctx.stroke(); ctx.restore();
+      }
+      // 9x9x9 points sample the visible portion of a rank-3 span.
+      // This deliberately illustrates a volume, not a finite box span.
+      const volumePoints = [];
+      for (let i = -4; i <= 4; i++)for (let j = -4; j <= 4; j++)for (let k = -4; k <= 4; k++) {
+        volumePoints.push([i * BOX / 4, j * BOX / 4, k * BOX / 4]);
+      }
+      function drawRankThree() {
+        // Transparent outer faces reveal the entire bounded viewing volume.
+        const faces = [];
+        for (let axis = 0; axis < 3; axis++)for (const sign of [-1, 1]) {
+          const indexes = [0, 1, 2].filter(i => i !== axis);
+          const pts = [];
+          for (const [a, b] of [[-BOX, -BOX], [BOX, -BOX], [BOX, BOX], [-BOX, BOX]]) {
+            const p = [0, 0, 0]; p[axis] = BOX * sign; p[indexes[0]] = a; p[indexes[1]] = b; pts.push(p);
+          }
+          faces.push({ points: pts, d: pts.reduce((sum, p) => sum + depth(p), 0) / 4 });
+        }
+        faces.sort((a, b) => b.d - a.d);
+        for (const f of faces) polygon(f.points, 'rgba(76,219,205,.026)', 'rgba(103,228,217,.15)');
+        const sorted = volumePoints.map(p => ({ p, z: depth(p) })).sort((a, b) => b.z - a.z);
+        for (const item of sorted) {
+          const p = project(item.p);
+          if (p.x < -5 || p.x > size.w + 5 || p.y < -5 || p.y > size.h + 5) continue;
+          const light = clamp(1.7 - item.z / 45, .35, .9);
+          const r = clamp(1.45 * 24 / item.z, .8, 2.0);
+          ctx.fillStyle = `rgba(107,238,218,${(.32 * light).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+        }
+        // Tiny central glow helps the volume read as continuous.
+        const o = project([0, 0, 0]);
+        const haze = ctx.createRadialGradient(o.x, o.y, 20, o.x, o.y, Math.min(size.w, size.h) * .42);
+        haze.addColorStop(0, 'rgba(71,193,181,.065)'); haze.addColorStop(1, 'rgba(71,193,181,0)');
+        ctx.fillStyle = haze; ctx.fillRect(0, 0, size.w, size.h);
+      }
+      function drawInputVectors() {
+        vectors.forEach((row, i) => {
+          const magnitude = norm(row.xyz);
+          if (magnitude < 1e-9) { circle([0, 0, 0], 4, COLORS[i], .75, 8); return; }
+          arrow([0, 0, 0], row.xyz, COLORS[i], 2.8, .98);
+          circle(row.xyz, 2.5, COLORS[i], .95, 9);
+        });
+      }
+      function drawCombination() {
+        if (!dom.showCombo.checked) return;
+        let running = [0, 0, 0];
+        // The broken, color-coded path is head-to-tail vector addition.
+        for (let i = 0; i < vectors.length; i++) {
+          const next = add(running, mul(vectors[i].xyz, vectors[i].c));
+          if (norm(sub(next, running)) > 1e-9) {
+            line(running, next, COLORS[i], 1.8, .68, 3, true);
+            circle(next, 2.6, COLORS[i], .8, 7);
+          }
+          running = next;
+        }
+        if (norm(resultant) > 1e-8) {
+          arrow([0, 0, 0], resultant, '#f9f0c9', 3.5, .98);
+          circle(resultant, 4.6, '#fffae5', .92, 17);
+          label(resultant, 'Σ = ' + tuple(resultant), '#fcf2ca', 12, 12);
+        } else {
+          circle([0, 0, 0], 7, '#f9f0c9', .43, 16);
+        }
+      }
+      function drawVectorLabels() {
+        vectors.forEach((v, i) => {
+          if (norm(v.xyz) < 1e-9) return;
+          label(v.xyz, vectorName(i), COLORS[i], 10 + (i % 2) * 2, -30 - (i % 3) * 4);
+        });
+      }
+      function draw() {
+        frame = cameraFrame();
+        ctx.setTransform(size.pixelRatio, 0, 0, size.pixelRatio, 0, 0);
+        ctx.clearRect(0, 0, size.w, size.h);
+        drawGuides();
+        if (analysis.rank === 0) drawRankZero();
+        if (analysis.rank === 1) drawRankOne();
+        if (analysis.rank === 2) drawRankTwo();
+        if (analysis.rank === 3) drawRankThree();
+        drawAxes();
+        drawInputVectors();
+        drawCombination();
+        circle([0, 0, 0], 3.4, '#e8fcf9', .98, 12);
+        drawVectorLabels();
+      }
+
+      // ---- Mouse, pen, touch orbiting and zooming ----
+      dom.viewport.addEventListener('pointerdown', e => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        dom.viewport.setPointerCapture(e.pointerId);
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        lastPinch = null;
+        dom.viewport.classList.add('dragging');
+      });
+      dom.viewport.addEventListener('pointermove', e => {
+        if (!pointers.has(e.pointerId)) return;
+        const last = pointers.get(e.pointerId);
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pointers.size === 1) {
+          camera.yaw -= (e.clientX - last.x) * .008;
+          camera.pitch = clamp(camera.pitch + (e.clientY - last.y) * .008, -1.52, 1.52);
+          requestDraw();
+        } else if (pointers.size === 2) {
+          const pts = [...pointers.values()];
+          const pinch = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          if (lastPinch && pinch > 0) camera.distance = clamp(camera.distance * lastPinch / pinch, 14, 150);
+          lastPinch = pinch;
+          requestDraw();
+        }
+      });
+      function finishPointer(e) {
+        pointers.delete(e.pointerId);
+        if (pointers.size === 0) dom.viewport.classList.remove('dragging');
+        lastPinch = null;
+      }
+      dom.viewport.addEventListener('pointerup', finishPointer);
+      dom.viewport.addEventListener('pointercancel', finishPointer);
+      dom.viewport.addEventListener('lostpointercapture', finishPointer);
+      dom.viewport.addEventListener('wheel', e => {
+        e.preventDefault();
+        camera.distance = clamp(camera.distance * Math.exp(e.deltaY * .00085), 14, 150);
+        requestDraw();
+      }, { passive: false });
+
+      // Public hooks are useful for instructors and automated regression tests.
+      window.SpanLab = {
+        setVectors: arr => setVectors(arr),
+        analyze: arr => analyzeSpan(arr),
+        getState: () => ({ vectors: vectors.map(v => [...v.xyz]), rank: analysis.rank, basis: analysis.basis.map(v => [...v]), statuses: [...analysis.statuses], result: [...resultant] }),
+        setCoefficients: coeffs => {
+          if (!Array.isArray(coeffs) || coeffs.length !== vectors.length) return false;
+          coeffs.forEach((c, i) => vectors[i].c = clamp(finiteNumber(c), -2, 2));
+          drawCoefficientInputs(); recalculate(); return true;
+        }
+      };
+      analysis = analyzeSpan(vectors.map(v => v.xyz));
+      drawVectorInputs();
+      selectPreset('plane');
+      recalculate();
+      if (location.hash) loadHash();
+      resize();
+    })();
+  </script>
+</body>
+
+</html>
